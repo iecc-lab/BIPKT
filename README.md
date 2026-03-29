@@ -21,7 +21,7 @@ python data_preprocess.py [parameter]
 
 Args:
     
---dataset_name: dataset name, default=“assist2015”
+--dataset_name: dataset name, default=“lg”
     
 --min_seq_len: minimum sequence length, default=3
     
