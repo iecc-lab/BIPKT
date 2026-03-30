@@ -138,15 +138,12 @@ def evaluate(model, test_loader, model_name, rel=None, save_path=""):
                 # csm = torch.cat((dcur["smasks"][:,0:1], dcur["smasks"]), dim=1)
                 y = model(cc.long(), cq.long(), ct.long(), cr.long())#, csm.long())
                 y = y[:, 1:]
-            elif model_name in que_type_models and model_name not in ["lpkt", "promptkt","zyw_que"]:
+            elif model_name in que_type_models and model_name not in ["lpkt", "promptkt","bipkt"]:
                 y = model.predict_one_step(data)
                 c,cshft = q,qshft#question level 
-            elif model_name in ["zyw_que"]:
-                y,_,_ = model.predict_one_step(data)
+            elif model_name in ["bipkt"]:
+                y = model.predict_one_step(data,return_details=False)
                 c,cshft = q,qshft#question level
-            elif model_name in ["zyw"]:
-                y = model(dcur)
-
             elif model_name in ["promptkt"]:
                 y = model(dcur)
                 y = y[:, 1:]
@@ -236,7 +233,7 @@ def effective_fusion(df, model, model_name, fusion_type):
     dcur = {"late_trues": [], "qidxs": [], "questions": [], "concepts": [], "row": [], "concept_preds": []}
     hasearly = ["dkvmn","deep_irt", "skvmn", "kqn", "akt","extrakt", "folibikt", "dtransformer", "simplekt","stablekt","cskt","fluckt", "ukt", "bakt_time", "sparsekt","lefokt_akt",  "saint", "sakt", "hawkes", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx", "lpkt"]
     for ui in df:
-        # 一题一题处�?
+        # 一题一题处�?
         curdf = ui[1]
         if model_name in hasearly and model_name not in ["kqn","lpkt","deep_irt"]:
             curhs[0].append(curdf["hidden"].mean().astype(float))
@@ -739,7 +736,7 @@ def evaluate_splitpred_question(model, data_config, testf, model_name, save_path
             # print(f"curcin: {curcin}")
             t = ctrainlen
 
-            ### 如果不用预测结果，可以从这里并行�?
+            ### 如果不用预测结果，可以从这里并行�?
             
             if not use_pred:
                 uid, end = row["uid"], curl
@@ -861,7 +858,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             sdin = sdin[:, start:]
             qdin = qdin[:, start:]
         # print(f"start: {start}, cin: {cin.shape}")
-        cout, true = cc.long()[k], cr.long()[k] # 当前预测的是第k�?
+        cout, true = cc.long()[k], cr.long()[k] # 当前预测的是第k�?
         qout = None if cq.shape[0] == 0 else cq.long()[k]
         tout = None if ct.shape[0] == 0 else ct.long()[k]
         
@@ -906,7 +903,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             y = model(cin.long(), rin.long(), cshft.long())
             pred = y[0][-1]
         elif model_name == "saint":
-            #### 输入有question�?
+            #### 输入有question�?
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
                 qin = torch.cat((qin, curq), axis=1)
@@ -936,11 +933,11 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             curc, curr = torch.tensor([[cout.item()]]).to(device), torch.tensor([[true.item()]]).to(device)
             cin, rin = torch.cat((cin, curc), axis=1), torch.cat((rin, curr), axis=1)
             # print(f"cin: {cin.shape}, curc: {curc.shape}")
-            # 应该用预测的r更新memory value，但是这里一个知识点一个知识点预测，所以curr不起作用�?
+            # 应该用预测的r更新memory value，但是这里一个知识点一个知识点预测，所以curr不起作用�?
             y = model(cin.long(), rin.long())
             pred = y[0][-1]
         elif model_name in ["akt","extrakt","folibikt","fluckt", "lefokt_akt", "akt_vector", "akt_norasch", "akt_mono", "akt_attn", "aktattn_pos", "aktmono_pos", "akt_raschx", "akt_raschy", "aktvec_raschx"]:  
-            #### 输入有question�?     
+            #### 输入有question�?     
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
                 qin = torch.cat((qin, curq), axis=1)
@@ -951,7 +948,7 @@ def predict_each_group(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid, 
             y, reg_loss = model(cin.long(), rin.long(), qin.long())
             pred = y[0][-1]
         elif model_name in ["dtransformer"]:
-            #### 输入有question�?     
+            #### 输入有question�?     
             if qout != None:
                 curq = torch.tensor([[qout.item()]]).to(device)
                 qin = torch.cat((qin, curq), axis=1)
@@ -1250,7 +1247,7 @@ def predict_each_group2(dtotal, dcur, dforget, curdforget, is_repeat, qidx, uid,
     import copy
     nextdforget = copy.deepcopy(curdforget)
     ctrues, cpreds = [], []
-    # 以下这些用的是同一个历�?,可以并行
+    # 以下这些用的是同一个历�?,可以并行
     # 不用预测结果
     if model_name == "lpkt":
         qidxs, finalqs, finalcs, finalrs, finalts, finalits, finalqshfts, finalcshfts, finalrshfts, finaltshfts, finalitshfts, finald, finaldshft = prepare_data(model_name, is_repeat, qidx, dcur, curdforget, dtotal, dforget, t, end)
