@@ -14,27 +14,6 @@ import pandas as pd
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-
-def cal_loss1(model, ys, r, rshft, sm, score=None, final_pro_state=None, preloss=[]):
-    model_name = model.model_name
-
-    if model_name in ["zyw"]:
-
-        y = torch.masked_select(ys[0], sm)
-        t = torch.masked_select(rshft, sm)
-        socre = torch.masked_select(score, sm)
-
-        final_pro_state = torch.masked_select(final_pro_state[0], sm)
-        loss1 = binary_cross_entropy(y.float(), t.float())
-        loss_fn = torch.nn.MSELoss()
-        # loss3 = loss_fn(pd.double(), (socre / 10).double())                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
-        loss2 = loss_fn(y.double(), (socre / 10).double())
-        loss3 = loss_fn(final_pro_state.double(), (socre / 10).double())
-
-    
-        loss = loss1 + 0.5 * loss2 +  0.1 * loss3
-        return loss
-
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
 
@@ -226,8 +205,6 @@ def model_forward(model, data, rel=None):
 
     if model_name not in ["atkt", "atktfix","zyw"]+que_type_models or model_name in ["lpkt", "rkt"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
-    elif model_name == "zyw":
-        loss = cal_loss1(model, ys, r, rshft, sm, score=dcur["shft_score"], final_pro_state=final_pro_state, preloss=[])
     if model_name in ["ukt"] and model.use_CL != 0:
         return loss,temp
 
@@ -290,7 +267,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             auc, acc = evaluate(model, valid_loader, model.model_name, rel)
         else:
             auc, acc = evaluate(model, valid_loader, model.model_name)
-        ### atkt 有diff�? 以下代码导致�?
+        ### atkt 有diff�? 以下代码导致�?
         ### auc, acc = round(auc, 4), round(acc, 4)
 
         if auc > max_auc+1e-3:
